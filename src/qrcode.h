@@ -37,12 +37,7 @@
 #ifndef __QRCODE_H_
 #define __QRCODE_H_
 
-#ifndef __cplusplus
-typedef unsigned char bool;
-static const bool false = 0;
-static const bool true = 1;
-#endif
-
+#include <stdbool.h>
 #include <stdint.h>
 
 
@@ -64,6 +59,14 @@ static const bool true = 1;
 #ifndef LOCK_VERSION
 #define LOCK_VERSION       0
 #endif
+
+
+// Version Numbers
+#if LOCK_VERSION == 0
+#define VERSION_AUTO       0
+#endif // LOCK_VERSION == 0
+#define VERSION_MIN        1
+#define VERSION_MAX        40
 
 
 typedef struct QRCode {
