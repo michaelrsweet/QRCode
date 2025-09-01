@@ -48,9 +48,9 @@ The following example prints a QR code to the Serial Monitor (it likely will
 not be scannable, but is just for demonstration purposes).
 
 ```c
-for (uint8 y = 0; y < qrcode.size; y++) {
-    for (uint8 x = 0; x < qrcode.size; x++) {
-        if (qrcode_getModule(&qrcode, x, y) {
+for (uint8_t y = 0; y < qrcode.size; y++) {
+    for (uint8_t x = 0; x < qrcode.size; x++) {
+        if (qrcode_getModule(&qrcode, x, y)) {
             Serial.print("**");
         } else {
             Serial.print("  ");
