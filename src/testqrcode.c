@@ -46,6 +46,7 @@
 
 // Main entry
 int main(int argc, char *argv[]) {
+    const char *progname;               // Program name
     int        i;                       // Looping var
     uint8_t    ecc = ECC_LOW;           // Error correction level
     uint8_t    version = VERSION_AUTO;  // Version/size
@@ -55,6 +56,11 @@ int main(int argc, char *argv[]) {
                                         // QR code buffer
 
     // Parse command-line...
+    if ((progname = strrchr(argv[0], '/')) != NULL)
+      progname ++;
+    else
+      progname = argv[0];
+
     for (i = 1; i < argc; i ++) {
         if (argv[i][0] == '-') {
             for (const char *opt = argv[i] + 1; *opt; opt ++) {
@@ -62,7 +68,7 @@ int main(int argc, char *argv[]) {
                     case 'e' : /* -e ECC */
                         i ++;
                         if (i >= argc) {
-                            fputs("testqrcode: Missing error correction level after '-e'.\n", stderr);
+                            fprintf(stderr, "%s: Missing error correction level after '-e'.\n", progname);
                             return 1;
                         } else if (!strcmp(argv[i], "low")) {
                             ecc = ECC_LOW;
@@ -73,7 +79,7 @@ int main(int argc, char *argv[]) {
                         } else if (!strcmp(argv[i], "high")) {
                             ecc = ECC_HIGH;
                         } else {
-                            fprintf(stderr, "testqrcode: Bad error correction level '-e %s'.\n", argv[i]);
+                            fprintf(stderr, "%s: Bad error correction level '-e %s'.\n", progname, argv[i]);
                             return 1;
                         }
                         break;
@@ -81,12 +87,12 @@ int main(int argc, char *argv[]) {
                     case 'v' : /* -v VERSION */
                         i ++;
                         if (i >= argc) {
-                            fputs("testqrcode: Missing version number after '-v'.\n", stderr);
+                            fprintf(stderr, "%s: Missing version number after '-v'.\n", progname);
                             return 1;
                         } else {
                             long tempval = strtol(argv[i], NULL, 10);
                             if (tempval < VERSION_MIN || tempval > VERSION_MAX) {
-                                fprintf(stderr, "testqrcode: Bad version '-v %s'.\n", argv[i]);
+                                fprintf(stderr, "%s: Bad version '-v %s'.\n", progname, argv[i]);
                                 return 1;
                             }
                             version = (uint8_t)tempval;
@@ -94,12 +100,12 @@ int main(int argc, char *argv[]) {
                         break;
 
                     default :
-                        fprintf(stderr, "testqrcode: Unknown option '-%c'.\n", *opt);
+                        fprintf(stderr, "%s: Unknown option '-%c'.\n", progname, *opt);
                         return 1;
                 }
             }
         } else if (text != NULL) {
-            fprintf(stderr, "testqrcode: Unknown option '%s'.\n", argv[i]);
+            fprintf(stderr, "%s: Unknown option '%s'.\n", progname, argv[i]);
             return 1;
         } else {
             text = argv[i];
@@ -108,7 +114,7 @@ int main(int argc, char *argv[]) {
 
     // Verify we have something to generate...
     if (text == NULL) {
-        fputs("Usage: ./testqrcode [-e ECC] [-v VERSION] TEXT >FILENAME.svg\n", stderr);
+        fprintf(stderr, "Usage: %s [-e ECC] [-v VERSION] TEXT >FILENAME.svg\n", progname);
         fputs("Options:\n", stderr);
         fputs("-e ECC      Specify error correction (low,medium,quartile,high)\n", stderr);
         fputs("-e VERSION  Specify version/size (1 to 40, default is auto)\n", stderr);
@@ -117,7 +123,7 @@ int main(int argc, char *argv[]) {
 
     // Generate QR code...
     if (qrcode_initText(&qrcode, qrcodeBytes, version, ecc, text) < 0) {
-        fputs("testqrcode: Unable to generate QR code.\n", stderr);
+        fprintf(stderr, "%s: Unable to generate QR code.\n", progname);
         return 1;
     }
 
