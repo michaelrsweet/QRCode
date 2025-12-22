@@ -33,7 +33,7 @@
 
 CFLAGS	=	-Os -g
 LDFLAGS	=	-Os -g
-LIBS	=
+LIBS	=	-lz
 OBJS	=	qrcode.o testqrcode.o
 
 all:	testqrcode
