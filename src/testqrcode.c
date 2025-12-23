@@ -40,13 +40,9 @@
 #include <zlib.h>
 
 
-// PNG constants...
-#define PNG_PADDING  4                  // White padding around QR code
-
-
-// SVG constants...
-#define SVG_SCALE    5                  // Nominal size of modules
-#define SVG_PADDING  4                  // White padding around QR code
+// Image export constants...
+#define QR_SCALE    5                  // Nominal size of modules
+#define QR_PADDING  4                  // White padding around QR code
 
 
 // Local function for PNG output...
@@ -156,8 +152,8 @@ int main(int argc, char *argv[]) {
 
     if (makeSVG) {
 	// Write SVG to stdout...
-	printf("<svg width=\"%d\" height=\"%d\" xmlns=\"http://www.w3.org/2000/svg\">\n", (qrcode.size + 2 * SVG_PADDING) * SVG_SCALE, (qrcode.size + 2 * SVG_PADDING) * SVG_SCALE);
-	printf("  <rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" fill=\"white\" />\n", (qrcode.size + 2 * SVG_PADDING) * SVG_SCALE, (qrcode.size + 2 * SVG_PADDING) * SVG_SCALE);
+	printf("<svg width=\"%d\" height=\"%d\" xmlns=\"http://www.w3.org/2000/svg\">\n", (qrcode.size + 2 * QR_PADDING) * QR_SCALE, (qrcode.size + 2 * QR_PADDING) * QR_SCALE);
+	printf("  <rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" fill=\"white\" />\n", (qrcode.size + 2 * QR_PADDING) * QR_SCALE, (qrcode.size + 2 * QR_PADDING) * QR_SCALE);
 
 	for (uint8_t y = 0; y < qrcode.size; y++) {
 	    uint8_t xstart = 0, xcount = 0;
@@ -167,13 +163,13 @@ int main(int argc, char *argv[]) {
 		    if (xcount == 0) { xstart = x; }
 		    xcount ++;
 		} else if (xcount > 0) {
-		    printf("  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"black\" />\n", (xstart + SVG_PADDING) * SVG_SCALE, (y + SVG_PADDING) * SVG_SCALE, xcount * SVG_SCALE, SVG_SCALE);
+		    printf("  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"black\" />\n", (xstart + QR_PADDING) * QR_SCALE, (y + QR_PADDING) * QR_SCALE, xcount * QR_SCALE, QR_SCALE);
 		    xcount = 0;
 		}
 	    }
 
 	    if (xcount > 0) {
-		printf("  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"black\" />\n", (xstart + SVG_PADDING) * SVG_SCALE, (y + SVG_PADDING) * SVG_SCALE, xcount * SVG_SCALE, SVG_SCALE);
+		printf("  <rect x=\"%d\" y=\"%d\" width=\"%d\" height=\"%d\" fill=\"black\" />\n", (xstart + QR_PADDING) * QR_SCALE, (y + QR_PADDING) * QR_SCALE, xcount * QR_SCALE, QR_SCALE);
 	    }
 	}
 
@@ -186,15 +182,17 @@ int main(int argc, char *argv[]) {
 			*pngend = pngbuf + sizeof(pngbuf),
 					// Pointer to end of PNG buffer
 			*pngdata,	// Start of PNG chunk data
-			line[1 + (255 + 2 * PNG_PADDING + 7) / 8],
+			line[1 + (QR_SCALE * (255 + 2 * QR_PADDING) + 7) / 8],
 					// PNG bitmap line starting with filter byte
 			*lineptr,	// Pointer into line
 			bit;		// Current bit
-        unsigned	size = qrcode.size + 2 * PNG_PADDING,
+        unsigned	size = QR_SCALE * (qrcode.size + 2 * QR_PADDING),
 					// Size of image
 			linelen = (size + 7) / 8,
 					// Length of a line
-			x, y;		// Looping vars
+			x, x0, y, y0,	// Looping vars
+			xoff = (QR_SCALE * QR_PADDING) / 8,
+			xmod = (QR_SCALE * QR_PADDING) & 7;
         int		zerr;		// ZLIB error code
 	z_stream	zstream;	// ZLIB compression stream
 
@@ -253,7 +251,7 @@ int main(int argc, char *argv[]) {
 
         // Add padding at the top...
         memset(line + 1, 0xff, linelen);
-        for (y = 0; y < PNG_PADDING; y ++) {
+        for (y = 0; y < (QR_SCALE * QR_PADDING); y ++) {
 	    zstream.next_in  = (Bytef *)line;
             zstream.avail_in = linelen + 1;
             if ((zerr = deflate(&zstream, Z_NO_FLUSH)) < Z_OK) {
@@ -266,30 +264,36 @@ int main(int argc, char *argv[]) {
         for (y = 0; y < qrcode.size; y ++) {
 	    memset(line + 1, 0xff, linelen);
 
-	    for (x = 0, lineptr = line + 1, bit = 128 >> PNG_PADDING; x < qrcode.size; x ++) {
-		if (qrcode_getModule(&qrcode, x, y)) {
-		    *lineptr ^= bit;
-		}
+	    for (x = 0, lineptr = line + 1 + xoff, bit = 128 >> xmod; x < qrcode.size; x ++) {
+		bool qrset = qrcode_getModule(&qrcode, x, y);
 
-		if (bit == 1) {
-		    lineptr ++;
-		    bit = 128;
-		} else {
-		    bit = bit / 2;
+		for (x0 = 0; x0 < QR_SCALE; x0 ++) {
+		    if (qrset) {
+			*lineptr ^= bit;
+		    }
+
+		    if (bit == 1) {
+			lineptr ++;
+			bit = 128;
+		    } else {
+			bit = bit / 2;
+		    }
 		}
 	    }
 
-	    zstream.next_in  = (Bytef *)line;
-            zstream.avail_in = linelen + 1;
-            if ((zerr = deflate(&zstream, Z_NO_FLUSH)) < Z_OK) {
-                fprintf(stderr, "%s: Unable to deflate image (%d).\n", progname, zerr);
-                return 1;
-            }
+	    for (y0 = 0; y0 < QR_SCALE; y0 ++) {
+		zstream.next_in  = (Bytef *)line;
+		zstream.avail_in = linelen + 1;
+		if ((zerr = deflate(&zstream, Z_NO_FLUSH)) < Z_OK) {
+		    fprintf(stderr, "%s: Unable to deflate image (%d).\n", progname, zerr);
+		    return 1;
+		}
+	    }
         }
 
         // Add padding at the bottom...
         memset(line + 1, 0xff, linelen);
-        for (y = 0; y < PNG_PADDING; y ++) {
+        for (y = 0; y < (QR_SCALE * QR_PADDING); y ++) {
 	    zstream.next_in  = (Bytef *)line;
             zstream.avail_in = linelen + 1;
             if ((zerr = deflate(&zstream, Z_NO_FLUSH)) < Z_OK) {
