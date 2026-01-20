@@ -4,6 +4,7 @@
  * This library is written and maintained by Richard Moore.
  * Major parts were derived from Project Nayuki's library.
  *
+ * Copyright (c) 2025 Michael R Sweet
  * Copyright (c) 2017 Richard Moore     (https://github.com/ricmoo/QRCode)
  * Copyright (c) 2017 Project Nayuki    (https://www.nayuki.io/page/qr-code-generator-library)
  *
